@@ -10,6 +10,15 @@ This repository contains two things:
 **Team:** Prestige (Shannel Wanjiru, Raika Kanyiha, GuyTresor Gacheru, Tony Kibe)
 **Integration contact:** Prestige team, via WhatsApp
 
+## Our ring partners
+
+| | Team | API |
+|---|---|---|
+| **Upstream** (we use their API) | [team name] | Artist API: https://artist-api-server.onrender.com (an artist-booking platform) |
+| **Downstream** (they use our API) | [team name] | This API, at the base URL below |
+
+The Browse page of our website shows a list of artists, each with their genre, in a side panel. It gets them from the Artist API's `GET /api/artists`. If their server can't be reached, the panel says "Partner data is unavailable right now" and the rest of the site keeps working.
+
 ---
 
 ## Quickstart for partner teams
@@ -307,7 +316,33 @@ The tests use a separate database (`<DB_NAME>_test`), so they never touch your r
 
 ### Using our upstream partner's API
 
-Set `PARTNER_URL`, `PARTNER_API_KEY`, and the header, path and field names from their README in `.env`. The Browse page shows their data in a side panel. If their server isn't ready, run `npm run partner-stub` and point `PARTNER_URL` at `http://localhost:4000` with key `stub-key`.
+Our upstream partner is the **Artist API**, at `https://artist-api-server.onrender.com`. We call `GET /api/artists`, which their README documents as returning:
+
+```json
+[{"id":4,"name":"Ben","genre":"Afrobeats","bio":"hi"},{"id":2,"name":"Night Echo","genre":"Indie","bio":"Alternative musician"}]
+```
+
+Our server calls it, never the browser, and the side panel shows each artist's `name` and `genre`. The settings in `.env.example` are already filled in for it:
+
+```
+PARTNER_URL=https://artist-api-server.onrender.com
+PARTNER_API_KEY=
+PARTNER_PATH=/api/artists
+PARTNER_TITLE_FIELD=name
+PARTNER_DETAIL_FIELD=genre
+```
+
+Their API has no authentication yet, so `PARTNER_API_KEY` stays empty and no key header is sent. If they add a key later, put it in `PARTNER_API_KEY` and set `PARTNER_KEY_HEADER` to the header name from their README.
+
+To check their API is up before starting our server:
+
+```
+curl -i https://artist-api-server.onrender.com/api/health
+```
+
+Expected: `200 {"api":"ok","database":"connected"}`. Their server is hosted on Render. If it's on Render's free plan, it sleeps when nobody has used it for a while, so the first call can take up to a minute. Our server waits up to 20 seconds (`PARTNER_TIMEOUT_MS`) and then shows "Partner data is unavailable right now" instead of freezing the page; reload once their server is awake.
+
+If their server is down, run `npm run partner-stub` (a local copy of `GET /api/artists` with the same response shape) and set `PARTNER_URL=http://localhost:4000`.
 
 ### Project layout
 
